@@ -1,5 +1,110 @@
 <html>
-  <body>
-    Under construction
-  <body>
-    </html>
+  <head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Arvo&display=swap" rel="stylesheet">
+    <style>
+      body {
+        margin: auto; 
+        width: 80%; 
+        font-family: 'Arvo', serif;
+        
+      }
+    </style>
+  </head>
+<body>
+<p>
+<img src="etc/logo.png"/><br/>
+<b>Recover ERC20 tokens sent mistakenly to a contract</b>
+</p>
+<hr/>
+<h1>Background</h1>
+<p>A very widespread mistake in the crypto world is to send <strong>ERC20</strong> tokens to a contract address. The contracts behave like black holes towards the tokens sent to them. There are many discussions about the possible ways to recover the tokens from contracts (see <a href="#references">References</a>), and most deem that practically impossible.</p>
+<h1>TokenRecovery</h1>
+<p>The utility tries to recover accidentially sent ERC20 tokens to a contract address. The program analyzes the contract for the <a href="https://swcregistry.io/">SWE</a> weaknesses and several others and attempts to use one of them to resend the tokens back to the owner.</p>
+<p>This software is heavily based on <a href="https://hal.inria.fr/hal-01400469/document">Formal Verification of Smart Contracts: Short Paper</a>. Being a static analyzer, TokenRecovery does not need gas when searching for weaknesses, in contrast to other utilities. e.g. fuzzers. <strong>Only</strong> when (and if!) TokenRecovery finds a way to bring the locked tokens back to the owner, the owner pays a usual transaction fee for the recovery transaction.</p>
+<h1>Installation</h1>
+<p>You can download pre-built binaries or build from the source.</p>
+<h2>Binary Downloads</h2>
+<p>TokenRecovery is a command line program. Download the zip file and extract to any folder. The executable is statically linked, no loadable dependancies.</p>
+<p>The latest release binaries for Windows and Linux are available here:</p>
+<ul>
+<li>
+<p><a href="https://github.com/ethgeeks/tokenrecovery/releases/download/v0.5.0/tokenrecovery.v0.5.0.win.zip">tokenrecovery-0.5.0-windows.zip</a></p>
+</li>
+<li>
+<p><a href="https://github.com/ethgeeks/tokenrecovery/releases/download/v0.5.0/tokenrecovery.v0.5.0.linux.zip">tokenrecovery-0.5.0-linux.zip</a></p>
+</li>
+</ul>
+<h2>Source Code</h2>
+<p>Building from source code entails setting up an OCaml development
+environment. For details see
+<a href="https://github.com/ethgeeks/tokenrecovery">repo</a>.</p>
+<h1>Usage</h1>
+<p>The utility accepts two command line options, <em>rpc</em> of the EVM-compatible network and the <em>hash</em> of the transaction by which you sent your tokens to the contract. The transaction contains all the data required by the utility to test token recoverability.</p>
+<pre><code class="language-bash">$ ./tokenrecovery --rpc https://rpc.ankr.com/eth --txhash 0x692449a8abf787633185716b75869bd87b7419db17434c4b7d354e1d3a8e562f
+</code></pre>
+<p>A list of RPC public endpoints can be found <a href="https://github.com/arddluma/awesome-list-rpc-nodes-providers#ethereum">here</a> or <a href="https://rpc.info">here</a>.</p>
+<h1>Example</h1>
+<p>What follows is an example of successful recovery on polygon mumbai testnet.</p>
+<p><em>NOTE:</em> To get program help, run</p>
+<pre><code class="language-text">$ tokenrecovery --help
+</code></pre>
+<p><img src="./etc/manpage.png" alt="manpage"></p>
+<h2>Step 1: Contract analysis</h2>
+<p>We supply polygon mumbai rpc url (<a href="https://rpc-mumbai.maticvigil.com">https://rpc-mumbai.maticvigil.com</a>) and transaction hash to the command. The utility analizes the contracts and predicts probability of token recovery from the contract. This can time some time (minutes).</p>
+<p><strong>PAY ATTENTION:</strong> <code>txhash</code> should be a transaction hash which transferred tokens from your account to the locking contract. TokenRecovery will refuse to proceed if the hash is not a transfer hash. You can always discover this hash by searching in a respective etherscan site (for example, <a href="">https://etherscan.com</a> for Ethereum or <a href="https://polygonscan.com">https://polygonscan.com</a> for Polygon).</p>
+<p><img src="./etc/step1.png" alt="step1"></p>
+<h2>Step 2: proving ownership</h2>
+<p>To prove the transaction belongs to an account in your ownership, you should provide account's private key. The key is used for two purposes:</p>
+<ul>
+<li>proving account ownership (and, thereby, ownership of locked tokens)</li>
+<li>sending recovery transactions provided the recovery is possible.</li>
+</ul>
+<p><img src="./etc/step2.png" alt="step2"></p>
+<h2>Step 3: recovering tokens</h2>
+<p>After account's ownership of the tokens is proved, an attempt to recover the tokens is made. On success, all the locked tokens are recovered to the owner's account.</p>
+<p><img src="./etc/step3.png" alt="step3"></p>
+<h1>Retrieving account private key</h1>
+<h2>Metamask</h2>
+<p>To get account private key from Metamask, click on three vertical points and <code>Account details</code></p>
+<p><img src="./etc/metamask1.png" alt="step1"></p>
+<p>and then <code>Export private key</code>:</p>
+<p><img src="./etc/metamask2.png" alt="step2"></p>
+<h2>Trezor</h2>
+<p>For cold wallets which never export private keys, the only way to get account private key is to use seed phrase to regenerate the private key of the account. There is an online tool for the derivation: <a href="https://iancoleman.io/bip39">https://iancoleman.io/bip39</a></p>
+<p>First, put your seed phrase to BIP39 mnemonic field and chose ETH coin:</p>
+<p><img src="./etc/trezor1.png" alt="step1"></p>
+<p>Then chose  BIP44 derivation path:</p>
+<p><img src="./etc/trezor2.png" alt="step2"></p>
+<p>The utility will create all the addresses and private keys from the seed. Find your address and respective private key:</p>
+<p><img src="./etc/trezor3.png" alt="step3"></p>
+
+<h1>References</h1>
+<ol>
+<li>
+  <a href="https://metamask.zendesk.com/hc/en-us/articles/4404062349979-Accidentally-sending-funds-to-the-wrong-address#:~:text=Unfortunately%2C%20there%20is%20no%20guarantee,some%20function%20on%20the%20blockchain">https://metamask.zendesk.com/hc/en-us/articles/4404062349979-Accidentally-sending-funds-to-the-wrong-address#:~:text=Unfortunately%2C%20there%20is%20no%20guarantee,some%20function%20on%20the%20blockchain</a>
+</li>
+
+<li>
+  <a href="https://forum.openzeppelin.com/t/how-to-recover-tokens-sent-to-the-token-contract-instead-of-a-wallet/17668/4">
+    https://forum.openzeppelin.com/t/how-to-recover-tokens-sent-to-the-token-contract-instead-of-a-wallet/17668/4
+  </a>
+</li>
+
+<li>
+  <a href="https://ethereum.stackexchange.com/questions/34559/i-accidentally-sent-a-token-to-a-token-contract-can-i-get-it-back">
+    https://ethereum.stackexchange.com/questions/34559/i-accidentally-sent-a-token-to-a-token-contract-can-i-get-it-back
+  </a>
+</li>
+
+<li>
+  <a href="  https://community.metamask.io/t/sent-tokens-to-a-contract-address-instead-of-deposit-address-can-i-recover-them/440">
+    https://community.metamask.io/t/sent-tokens-to-a-contract-address-instead-of-deposit-address-can-i-recover-them/440
+  </a>
+</li>
+</ol>
+<hr/>
+<center>ethgeeks / 2019-2022</center>
+</body>
+</html>
